@@ -16,13 +16,13 @@ app.listen(port, async () => {
     console.log(`🌐 Public URL: ${tunnel.url}`);
     console.log(`🚀 Your server is now accessible worldwide!`);
     
-    // Keep the server running for 2 minutes
-    console.log('⏰ Server will run for 2 minutes...');
+    // Keep the server running for 5 minutes
+    console.log('⏰ Server will run for 5 minutes...');
     setTimeout(() => {
-      console.log('🛑 Shutting down after 2 minutes...');
+      console.log('🛑 Shutting down after 5 minutes...');
       tunnel.close();
       process.exit(0);
-    }, 120000); // 2 minutes = 120,000 ms
+    }, 300000); // 5 minutes = 300,000 ms
     
     // Handle tunnel errors
     tunnel.on('close', () => {
@@ -33,10 +33,10 @@ app.listen(port, async () => {
     console.error('❌ Error creating tunnel:', error);
     console.log('Server running locally only on port', port);
     
-    // Still keep server running for 2 minutes even if tunnel fails
+    // Still keep server running for 5 minutes even if tunnel fails
     setTimeout(() => {
-      console.log('Shutting down after 2 minutes...');
+      console.log('Shutting down after 5 minutes...');
       process.exit(0);
-    }, 600000);
+    }, 300000); // Fixed: was 600000, now 300000 (5 minutes)
   }
 });
