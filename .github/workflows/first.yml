@@ -10,9 +10,28 @@ jobs:
           - name: checkout repo
             uses: actions/checkout@v4
 
-
           - name: welcome msg
             run: echo "first github actions"
 
+          - name: node Intall
+            uses: actions/setup-node@v4
+            with:
+              node-version: "18"
+
+          - name : install dep
+            run: npm install
+
           - name: listing files
             run: ls -ltra
+
+          - name: opening server.js
+            run: cat server.js
+
+          - name: Start server (background)
+            run: node server.js &
+
+          - name: Test server
+            run: |
+              sleep 3
+              curl http://localhost:3000
+        
