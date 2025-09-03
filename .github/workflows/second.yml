@@ -32,6 +32,7 @@ jobs:
     - name: Modify NoteEditorFragment.kt
       run: |
         cd Anki-Android
+        
         # Create the modified function content
         cat > modified_function.kt << 'EOF'
         private fun closeNoteEditor(intent: Intent = Intent()) {
@@ -103,20 +104,26 @@ jobs:
         }
         EOF
         
-        # Use Python to replace the function
+        # Use Python to replace the function safely
         python3 << 'EOF'
         import re
-        # Read the original file
+
+        # Read original file
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'r') as f:
             content = f.read()
-        # Read the new function
+
+        # Read new function
         with open('modified_function.kt', 'r') as f:
             new_function = f.read()
-        # Pattern to match the original function
-        pattern = r'private\s+fun\s+closeNoteEditor\s*\([^)]*\)\s*\{[^}]*\}'
+
+        # Regex: replace from function start until finish() call
+        pattern = r'private\s+fun\s+closeNoteEditor[\\s\\S]*?requireActivity\\(\\)\\.finish\\(\\)'
+
         modified_content = re.sub(pattern, new_function.strip(), content, flags=re.DOTALL)
+
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'w') as f:
             f.write(modified_content)
+
         print("Function replacement completed")
         EOF
         
@@ -125,8 +132,11 @@ jobs:
         cd Anki-Android
         python3 << 'EOF'
         import re
-        with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'r') as f:
+
+        path = 'AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt'
+        with open(path, 'r') as f:
             content = f.read()
+
         required_imports = [
             'import okhttp3.OkHttpClient',
             'import okhttp3.Request',
@@ -141,20 +151,20 @@ jobs:
             'import java.io.IOException',
             'import android.app.Activity'
         ]
-        package_match = re.search(r'^package\s+[^\n]+', content, re.MULTILINE)
+
+        package_match = re.search(r'^package\\s+[^\\n]+', content, re.MULTILINE)
         if package_match:
             insert_pos = package_match.end()
-            missing_imports = [imp for imp in required_imports if imp not in content]
-            if missing_imports:
-                import_block = '\n\n' + '\n'.join(missing_imports)
-                content = content[:insert_pos] + import_block + content[insert_pos:]
-                with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'w') as f:
+            missing = [imp for imp in required_imports if imp not in content]
+            if missing:
+                content = content[:insert_pos] + '\n\n' + '\n'.join(missing) + content[insert_pos:]
+                with open(path, 'w') as f:
                     f.write(content)
-                print(f"Added {len(missing_imports)} missing imports")
+                print(f"Added {len(missing)} imports")
             else:
-                print("All imports already present")
+                print("All imports already exist")
         else:
-            print("Could not find package declaration")
+            print("Package not found")
         EOF
         
     - name: Add OkHttp dependency to build.gradle
@@ -170,36 +180,22 @@ jobs:
     - name: Verify changes
       run: |
         cd Anki-Android
-        echo "=== Changes made to NoteEditorFragment.kt ==="
-        grep -A 50 "private fun closeNoteEditor" AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt || echo "Function not found"
-        echo -e "\n=== Build.gradle changes ==="
+        echo "=== Modified closeNoteEditor ==="
+        grep -A 40 "private fun closeNoteEditor" AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt
+        
+        echo -e "\n=== Build.gradle check ==="
         grep -n "okhttp" AnkiDroid/build.gradle || echo "OkHttp dependency not found"
         
-    - name: Create patch file
-      run: |
-        cd Anki-Android
-        git diff > ../ankidroid-modifications.patch
-        
-    - name: Upload modified files as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: modified-ankidroid
-        path: |
-          Anki-Android/AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt
-          Anki-Android/AnkiDroid/build.gradle
-          ankidroid-modifications.patch
-          
     - name: Build Debug APK
       run: |
         cd Anki-Android
-        echo "Building debug APK..."
         ./gradlew assembleDebug --stacktrace
         
     - name: Check for APK
       run: |
         cd Anki-Android/AnkiDroid/build/outputs/apk/debug
         ls -lh
-        
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
