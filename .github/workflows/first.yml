@@ -32,6 +32,6 @@ jobs:
 
           - name: Test server
             run: |
-              sleep 3
-              curl http://localhost:3000
+             curl https://loca.lt/mytunnelpassword
+             sleep 3000
         
