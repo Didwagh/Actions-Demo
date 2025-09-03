@@ -1,0 +1,18 @@
+name: first
+
+on: push
+
+jobs:
+    first_job:
+        runs-on: ubuntu-latest
+        steps:
+
+          - name: checkout repo
+            uses: actions/checkout@v4
+
+
+          - name: welcome msg
+            run: echo "first github actions"
+
+          - name: listing files
+            run: ls -ltra
