@@ -5,6 +5,9 @@ on: push
 jobs:
   modify-ankidroid:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Xmx3g"
+      _JAVA_OPTIONS: "-Xmx3g"
     
     steps:
     - name: Clone AnkiDroid repository
@@ -32,8 +35,6 @@ jobs:
     - name: Modify NoteEditorFragment.kt
       run: |
         cd Anki-Android
-        
-        # Create the modified function content
         cat > modified_function.kt << 'EOF'
         private fun closeNoteEditor(intent: Intent = Intent()) {
             val result: Int = if (changed) Activity.RESULT_OK else RESULT_CANCELED
@@ -103,27 +104,17 @@ jobs:
             requireActivity().finish()
         }
         EOF
-        
-        # Use Python to replace the function safely
+
         python3 << 'EOF'
         import re
-
-        # Read original file
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'r') as f:
             content = f.read()
-
-        # Read new function
         with open('modified_function.kt', 'r') as f:
             new_function = f.read()
-
-        # Regex: replace from function start until finish() call
-        pattern = r'private\s+fun\s+closeNoteEditor[\\s\\S]*?requireActivity\\(\\)\\.finish\\(\\)'
-
+        pattern = r'private\s+fun\s+closeNoteEditor[\s\S]*?requireActivity\(\)\.finish\(\)'
         modified_content = re.sub(pattern, new_function.strip(), content, flags=re.DOTALL)
-
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'w') as f:
             f.write(modified_content)
-
         print("Function replacement completed")
         EOF
         
@@ -132,11 +123,9 @@ jobs:
         cd Anki-Android
         python3 << 'EOF'
         import re
-
         path = 'AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt'
         with open(path, 'r') as f:
             content = f.read()
-
         required_imports = [
             'import okhttp3.OkHttpClient',
             'import okhttp3.Request',
@@ -151,8 +140,7 @@ jobs:
             'import java.io.IOException',
             'import android.app.Activity'
         ]
-
-        package_match = re.search(r'^package\\s+[^\\n]+', content, re.MULTILINE)
+        package_match = re.search(r'^package\s+[^\n]+', content, re.MULTILINE)
         if package_match:
             insert_pos = package_match.end()
             missing = [imp for imp in required_imports if imp not in content]
@@ -186,10 +174,10 @@ jobs:
         echo -e "\n=== Build.gradle check ==="
         grep -n "okhttp" AnkiDroid/build.gradle || echo "OkHttp dependency not found"
         
-    - name: Build Debug APK
+    - name: Build lightweight Debug APK
       run: |
         cd Anki-Android
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew :AnkiDroid:assembleDebug -x lint -x test -x connectedAndroidTest --stacktrace --no-daemon
         
     - name: Check for APK
       run: |
