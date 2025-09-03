@@ -12,7 +12,7 @@ jobs:
         git clone https://github.com/ankidroid/Anki-Android.git
         cd Anki-Android
         
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -32,7 +32,6 @@ jobs:
     - name: Modify NoteEditorFragment.kt
       run: |
         cd Anki-Android
-        
         # Create the modified function content
         cat > modified_function.kt << 'EOF'
         private fun closeNoteEditor(intent: Intent = Intent()) {
@@ -107,42 +106,27 @@ jobs:
         # Use Python to replace the function
         python3 << 'EOF'
         import re
-        import sys
-        
         # Read the original file
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'r') as f:
             content = f.read()
-        
         # Read the new function
         with open('modified_function.kt', 'r') as f:
             new_function = f.read()
-        
-        # Find and replace the original function
-        # Pattern to match the original function (handles various formatting)
+        # Pattern to match the original function
         pattern = r'private\s+fun\s+closeNoteEditor\s*\([^)]*\)\s*\{[^}]*\}'
-        
-        # Replace with new function
         modified_content = re.sub(pattern, new_function.strip(), content, flags=re.DOTALL)
-        
-        # Write back to file
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'w') as f:
             f.write(modified_content)
-        
         print("Function replacement completed")
         EOF
         
     - name: Add required imports
       run: |
         cd Anki-Android
-        
-        # Add missing imports at the top of the file
         python3 << 'EOF'
         import re
-        
         with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'r') as f:
             content = f.read()
-        
-        # List of imports to add if not present
         required_imports = [
             'import okhttp3.OkHttpClient',
             'import okhttp3.Request',
@@ -157,26 +141,15 @@ jobs:
             'import java.io.IOException',
             'import android.app.Activity'
         ]
-        
-        # Find the package declaration
         package_match = re.search(r'^package\s+[^\n]+', content, re.MULTILINE)
         if package_match:
             insert_pos = package_match.end()
-            
-            # Check which imports are missing
-            missing_imports = []
-            for imp in required_imports:
-                if imp not in content:
-                    missing_imports.append(imp)
-            
+            missing_imports = [imp for imp in required_imports if imp not in content]
             if missing_imports:
-                # Insert missing imports after package declaration
                 import_block = '\n\n' + '\n'.join(missing_imports)
                 content = content[:insert_pos] + import_block + content[insert_pos:]
-                
                 with open('AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt', 'w') as f:
                     f.write(content)
-                
                 print(f"Added {len(missing_imports)} missing imports")
             else:
                 print("All imports already present")
@@ -187,10 +160,7 @@ jobs:
     - name: Add OkHttp dependency to build.gradle
       run: |
         cd Anki-Android
-        
-        # Add OkHttp dependency if not present
         if ! grep -q "implementation.*okhttp3" AnkiDroid/build.gradle; then
-            # Find dependencies block and add OkHttp
             sed -i '/dependencies {/a\    implementation "com.squareup.okhttp3:okhttp:4.12.0"' AnkiDroid/build.gradle
             echo "Added OkHttp dependency"
         else
@@ -201,11 +171,7 @@ jobs:
       run: |
         cd Anki-Android
         echo "=== Changes made to NoteEditorFragment.kt ==="
-        
-        # Show the modified function
-        echo "Modified closeNoteEditor function:"
         grep -A 50 "private fun closeNoteEditor" AnkiDroid/src/main/java/com/ichi2/anki/NoteEditorFragment.kt || echo "Function not found"
-        
         echo -e "\n=== Build.gradle changes ==="
         grep -n "okhttp" AnkiDroid/build.gradle || echo "OkHttp dependency not found"
         
@@ -223,8 +189,19 @@ jobs:
           Anki-Android/AnkiDroid/build.gradle
           ankidroid-modifications.patch
           
-    - name: Try to build (optional)
+    - name: Build Debug APK
       run: |
         cd Anki-Android
-        echo "Attempting to build..."
-        ./gradlew assemblePlayDebug --stacktrace || echo "Build failed - this is expected due to missing dependencies in CI environment"
+        echo "Building debug APK..."
+        ./gradlew assembleDebug --stacktrace
+        
+    - name: Check for APK
+      run: |
+        cd Anki-Android/AnkiDroid/build/outputs/apk/debug
+        ls -lh
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ankidroid-debug-apk
+        path: Anki-Android/AnkiDroid/build/outputs/apk/debug/*.apk
