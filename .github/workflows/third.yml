@@ -22,5 +22,5 @@ jobs:
         run: |
           echo "${{matrix.arr}}"
           echo "${{matrix.arr2}}"
-       
+          echo "$((${{matrix.arr}}*${{matrix.arr2}}))"
            
