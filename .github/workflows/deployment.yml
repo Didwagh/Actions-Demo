@@ -1,8 +1,6 @@
 name: deployment testing
 
-on: push
-#   schedule:
-    # - cron: "*/6 * * *"   # every 6 minutes
+on: push  # every 6 minutes
 
 jobs:
   job_1:
@@ -33,7 +31,11 @@ jobs:
         run: |
           nohup ngrok http 3000 > ngrok.log 2>&1 &
           sleep 5
-          curl --silent http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url'
+          echo "=== NGROK TUNNELS ==="
+          curl --silent http://127.0.0.1:4040/api/tunnels | tee tunnels.json
+          echo "=== Public URL ==="
+          jq -r '.tunnels[0].public_url' tunnels.json
 
       - name: Sleep for 5 minutes
         run: sleep 300
+
