@@ -10,19 +10,30 @@ env:
 
 jobs:
   job_1:
-    strategy:
-      matrix:
-        arr : [0,1,2,3]
-        arr2: [4,5]
-        exclude:
-          - arr2: 5
-          - arr: [0,1,2,3]
-
     runs-on: ubuntu-latest
     steps:
       - name: hello
         run: |
-          echo "${{matrix.arr}}"
-          echo "${{matrix.arr2}}"
-          echo "$((${{matrix.arr}}*${{matrix.arr2}}))"
-           
+          echo "${{ toJson(github) }}"
+
+  job_2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: hello
+        run: |
+          echo "${{ toJson(job) }}"
+
+  job_3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: hello
+        run: |
+          echo "${{ toJson(runner) }}"
+
+  job_4:
+    runs-on: ubuntu-latest
+    steps:
+      - name: hello
+        run: |
+          echo "${{ toJson(steps) }}"
+
