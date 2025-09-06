@@ -1,0 +1,27 @@
+name: deployment testing
+
+on: push
+
+jobs:
+  job_1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: action/checkout@v4
+      - name: install npm
+        uses: action/setup-node@v4
+        with:
+          node-version: 18
+      - name: run the code
+        run: npm install
+      - name : other cmd
+        run : |
+          pwd
+          node server.js &
+
+      - name : curl cmd
+        run : |
+         curl -s https://127.0.0.1:3000
+         vget -o hel.txt https://127.0.0.1:3000
+         cat hel.txt
+  
