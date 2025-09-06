@@ -1,8 +1,12 @@
 name: third
 
 on: 
-  schedule:
-    - cron: '*/5 * * * *'
+  push:
+  # schedule:
+    # - cron: '*/5 * * * *'
+
+env:
+  sleep: 200
 
 jobs:
   job_1:
@@ -13,3 +17,16 @@ jobs:
           echo "hellowrodl"
           ls - ltra
           echo "used helloword"
+           
+  job_2:
+    concurrency:
+      group: hsflds
+      cancel-in-progress: true
+      
+    runs-on: ubuntu-latest
+    steps:
+      - name: hello
+        run: |
+          echo "sleeping for ${{ env.sleep }}"
+          sleep ${{ env.sleep}}
+          
