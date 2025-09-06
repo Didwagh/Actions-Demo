@@ -24,4 +24,5 @@ jobs:
          curl -s http://127.0.0.1:3000
          wget -o hel.txt http://127.0.0.1:3000
          cat hel.txt
+         cat index.html
   
