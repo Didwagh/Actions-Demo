@@ -14,7 +14,9 @@ jobs:
       matrix:
         arr : [0,1,2,3]
         arr2: [4,5]
-      
+        exclude:
+          - arr2: 5
+          - arr: [0,1,2,3]
 
     runs-on: ubuntu-latest
     steps:
