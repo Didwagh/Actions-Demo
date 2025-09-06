@@ -1,5 +1,4 @@
 name: deployment testing
-
 on: push  # every 6 minutes
 
 jobs:
@@ -8,34 +7,77 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+       
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
+       
       - name: Install dependencies
         run: npm install
-
+       
       - name: Run Node app
         run: |
           nohup node server.js > server.log 2>&1 &
-
-      - name: Install ngrok
+          # Wait a moment for the server to start
+          sleep 3
+          # Verify server is running
+          if ! pgrep -f "node server.js" > /dev/null; then
+            echo "Server failed to start"
+            cat server.log
+            exit 1
+          fi
+          echo "Server started successfully"
+       
+      - name: Install and setup ngrok
         run: |
+          # Install ngrok
           curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
           echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
           sudo apt update && sudo apt install ngrok -y
-
+          
+          # Set up ngrok auth token (you'll need to add this as a secret)
+          ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+       
       - name: Expose port 3000 with ngrok
         run: |
-          nohup ngrok http 3000 > ngrok.log 2>&1 &
-          sleep 5
+          # Start ngrok in background
+          nohup ngrok http 3000 --log=stdout > ngrok.log 2>&1 &
+          
+          # Wait for ngrok to start and establish tunnel
+          echo "Waiting for ngrok to establish tunnel..."
+          for i in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:4040/api/tunnels >/dev/null 2>&1; then
+              echo "ngrok API is responding"
+              break
+            fi
+            echo "Attempt $i: ngrok not ready yet..."
+            sleep 2
+          done
+          
+          # Get tunnel information
           echo "=== NGROK TUNNELS ==="
           curl --silent http://127.0.0.1:4040/api/tunnels | tee tunnels.json
+          
+          # Extract and display public URL
           echo "=== Public URL ==="
-          jq -r '.tunnels[0].public_url' tunnels.json
-
+          PUBLIC_URL=$(jq -r '.tunnels[0].public_url // empty' tunnels.json)
+          if [ -n "$PUBLIC_URL" ]; then
+            echo "Public URL: $PUBLIC_URL"
+            echo "NGROK_URL=$PUBLIC_URL" >> $GITHUB_ENV
+          else
+            echo "Failed to get public URL"
+            echo "ngrok log contents:"
+            cat ngrok.log
+            exit 1
+          fi
+       
+      - name: Test the exposed endpoint
+        run: |
+          if [ -n "$NGROK_URL" ]; then
+            echo "Testing endpoint: $NGROK_URL"
+            curl -I "$NGROK_URL" || true
+          fi
+       
       - name: Sleep for 5 minutes
         run: sleep 300
-
