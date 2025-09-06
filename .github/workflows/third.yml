@@ -15,7 +15,6 @@ jobs:
       - name: hello
         run: |
           echo "hellowrodl"
-          ls - ltra
           echo "used helloword"
            
   job_2:
