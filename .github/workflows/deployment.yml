@@ -1,6 +1,8 @@
 name: deployment testing
 
-on: push
+on:
+  schedule:
+    - cron: "*/6 * * * "
 
 jobs:
   job_1:
