@@ -22,6 +22,6 @@ jobs:
       - name : curl cmd
         run : |
          curl -s https://127.0.0.1:3000
-         vget -o hel.txt https://127.0.0.1:3000
+         wget -o hel.txt https://127.0.0.1:3000
          cat hel.txt
   
