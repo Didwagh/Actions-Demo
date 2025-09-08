@@ -7,8 +7,7 @@ jobs:
     # outputs:
       # backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
-      - name: Checkout repos
-        run: ssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3000 a.pinggy.io
+
    
       - name: checkout repo
         uses: actions/checkout@v4
@@ -29,6 +28,9 @@ jobs:
           echo "🚀 Starting server in background..."
           node server.js &
           echo "⏰ Server started, will run for 5 minutes"
+          
+      - name: Checkout repos
+        run: ssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3000 a.pinggy.io &
 
       - name: Keep workflow alive
         run: |
