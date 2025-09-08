@@ -8,4 +8,4 @@ jobs:
       # backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
       - name: Checkout repo
-        run: ./pinggy -p 443 -R0:localhost:8000
+        run: ssh -p 443 -R0:127.0.0.1:8080 qr@free.pinggy.io
