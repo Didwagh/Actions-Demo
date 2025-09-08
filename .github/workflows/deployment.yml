@@ -8,4 +8,4 @@ jobs:
       # backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
       - name: Checkout repo
-        run: sssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:8000 a.pinggy.io
+        run: ssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:8000 a.pinggy.io
