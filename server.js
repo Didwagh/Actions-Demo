@@ -5,17 +5,28 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Use cors() but allow the custom ngrok header and OPTIONS
+// Configure CORS middleware
 app.use(cors({
-  origin: (origin, cb) => cb(null, true), // allow all origins
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning', 'Accept', 'Authorization']
+  origin: '*',
+  methods: ['GET','POST','OPTIONS'],
+  allowedHeaders: ['Content-Type','ngrok-skip-browser-warning','Accept','Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
-// Ensure express responds to preflight OPTIONS quickly
+// Log every request (helps debug whether OPTIONS reached your server)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} Host:${req.get('host')} Origin:${req.get('origin')} Headers: ${Object.keys(req.headers).join(',')}`);
+  next();
+});
+
+// Explicit preflight handler (extra-sure)
 app.options('*', (req, res) => {
-  // cors() middleware already set the proper headers, just end the request
-  res.sendStatus(204);
+  // These headers are normally set by cors(), but set them explicitly too
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,ngrok-skip-browser-warning,Accept,Authorization');
+  return res.sendStatus(204);
 });
 
 app.use(express.json());

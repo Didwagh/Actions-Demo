@@ -28,21 +28,17 @@ jobs:
       #     sleep 5
       #     cat server.log
 
-      - name: Start ngrok tunnel (skip warning)
+      - name: Start ngrok tunnel (host-header=rewrite) and export URL
         id: start-backend
         env:
-          NGROK_SKIP_BROWSER_WARNING: "true"
+          NGROK_AUTH: ${{ secrets.NGROK_AUTH }}
         run: |
-          echo "🌐 Starting ngrok..."
-          ngrok config add-authtoken ${{secrets.ngrok_auth}}
-          echo "🌐 Starting ngrok... ${{secrets.ngrok_auth}}"
+          ngrok config add-authtoken "$NGROK_AUTH"
           ngrok http 3000 --host-header=rewrite > /dev/null 2>&1 &
-          sleep 5
+          sleep 6
           url=$(curl --silent http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "Backend URL captured: $url"
-          # url=$(grep -o 'https://[0-9a-z.-]*\.ngrok-free\.app' ngrok.log | head -n1)
-          # echo "Backend URL captured: $url"
-          # echo "url=$url" >> $GITHUB_OUTPUT
+          echo "url=$url" >> $GITHUB_OUTPUT
 
       # - name: Test backend API
       #   run: |
