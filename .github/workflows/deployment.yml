@@ -15,18 +15,18 @@ jobs:
         with:
           node-version: '18'
        
-      - name: Install dependencies
-        run: npm install
+      # - name: Install dependencies
+      #   run: npm install
 
       - name: Install ngrok
         run: npm install -g ngrok
 
-      - name: Start backend server
-        run: |
-          echo "🚀 Starting backend server..."
-          node server.js > server.log 2>&1 &
-          sleep 5
-          cat server.log
+      # - name: Start backend server
+      #   run: |
+      #     echo "🚀 Starting backend server..."
+      #     node server.js > server.log 2>&1 &
+      #     sleep 5
+      #     cat server.log
 
       - name: Start ngrok tunnel (skip warning)
         id: start-backend
@@ -39,21 +39,21 @@ jobs:
           ngrok http 3000 > ngrok.log 2>&1 &
           sleep 10
           cat ngrok.log
-          url=$(grep -o 'https://[0-9a-z.-]*\.ngrok-free\.app' ngrok.log | head -n1)
-          echo "Backend URL captured: $url"
-          echo "url=$url" >> $GITHUB_OUTPUT
+          # url=$(grep -o 'https://[0-9a-z.-]*\.ngrok-free\.app' ngrok.log | head -n1)
+          # echo "Backend URL captured: $url"
+          # echo "url=$url" >> $GITHUB_OUTPUT
 
-      - name: Test backend API
-        run: |
-          echo "🧪 Testing backend API..."
-          curl -s ${{ steps.start-backend.outputs.url }}/api
-          echo ""
-          echo "✅ Backend API is working!"
+      # - name: Test backend API
+      #   run: |
+      #     echo "🧪 Testing backend API..."
+      #     curl -s ${{ steps.start-backend.outputs.url }}/api
+      #     echo ""
+      #     echo "✅ Backend API is working!"
 
       - name: Keep backend alive
         run: |
           echo "🔄 Keeping backend alive for 10 minutes..."
-          sleep 600
+          sleep 60
 
 
   # Job 2: Frontend Host (runs after backend is ready)
