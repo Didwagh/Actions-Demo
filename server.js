@@ -1,13 +1,16 @@
 const express = require('express');
-const cors = require('cors'); // ✅ import cors
+const cors = require('cors');
 
 const app = express();
 const port = 3000;
 
-// Enable CORS for all origins
-app.use(cors());
+// Enable CORS for all origins and allow ngrok header
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'ngrok-skip-browser-warning']
+}));
 
-// Optional: JSON parsing middleware
 app.use(express.json());
 
 // Simple API
@@ -25,7 +28,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
-// Start server
 app.listen(port, () => {
   console.log(`🚀 Backend server running at http://localhost:${port}`);
 });
