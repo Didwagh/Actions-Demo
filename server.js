@@ -1,50 +1,37 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
-// Configure CORS middleware
+// Enable CORS for all origins, methods, and headers
 app.use(cors({
-  origin: '*',
-  methods: ['GET','POST','OPTIONS'],
-  allowedHeaders: ['Content-Type','ngrok-skip-browser-warning','Accept','Authorization'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  origin: '*', // Allow requests from any domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// Log every request (helps debug whether OPTIONS reached your server)
+// Optional: Log all requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} Host:${req.get('host')} Origin:${req.get('origin')} Headers: ${Object.keys(req.headers).join(',')}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Explicit preflight handler (extra-sure)
-app.options('*', (req, res) => {
-  // These headers are normally set by cors(), but set them explicitly too
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,ngrok-skip-browser-warning,Accept,Authorization');
-  return res.sendStatus(204);
-});
-
-app.use(express.json());
-
+// Simple API
 app.get('/api', (req, res) => {
   res.json({
     message: 'Hello from Backend Server!',
     timestamp: new Date().toISOString(),
-    server: 'GitHub Actions Backend Pod',
-    passwordBypassed: true,
-    gotHost: req.get('host')
+    server: 'Backend Pod'
   });
 });
 
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
+// Start the server
 app.listen(port, () => {
   console.log(`🚀 Backend server running at http://localhost:${port}`);
 });
