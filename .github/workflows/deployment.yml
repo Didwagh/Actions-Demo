@@ -36,9 +36,10 @@ jobs:
           echo "🌐 Starting ngrok..."
           ngrok config add-authtoken ${{secrets.ngrok_auth}}
           echo "🌐 Starting ngrok... ${{secrets.ngrok_auth}}"
-          ngrok http 3000 > ngrok.log 2>&1 &
-          sleep 10
-          cat ngrok.log
+          ngrok http 3000 > /dev/null 2>&1 &
+          sleep 5
+          url=$(curl --silent http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          echo "Backend URL captured: $url"
           # url=$(grep -o 'https://[0-9a-z.-]*\.ngrok-free\.app' ngrok.log | head -n1)
           # echo "Backend URL captured: $url"
           # echo "url=$url" >> $GITHUB_OUTPUT
