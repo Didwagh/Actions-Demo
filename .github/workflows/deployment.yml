@@ -3,60 +3,60 @@ on: push
 
 jobs:
   # Job 1: Backend Server Only
-  backend_server:
-    runs-on: ubuntu-latest
-    outputs:
-      backend_url: ${{ steps.start-backend.outputs.url }}
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+  # backend_server:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+      # backend_url: ${{ steps.start-backend.outputs.url }}
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v4
        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '18'
        
-      - name: Install dependencies
-        run: npm install
+  #     - name: Install dependencies
+  #       run: npm install
 
-      - name: Get LocalTunnel Password
-        run: |
-          echo "🔑 Getting password from LocalTunnel..."
-          curl -s https://loca.lt/mytunnelpassword
-          echo ""
-          echo "👆 Copy the password shown above"
+  #     - name: Get LocalTunnel Password
+  #       run: |
+  #         echo "🔑 Getting password from LocalTunnel..."
+  #         curl -s https://loca.lt/mytunnelpassword
+  #         echo ""
+  #         echo "👆 Copy the password shown above"
        
-      - name: Start backend server
-        id: start-backend
-        run: |
-          echo "🚀 Starting backend server..."
-          node server.js > server.log 2>&1 &
-          sleep 15
-          cat server.log
-          url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' server.log | head -n1)
-          echo "Backend URL captured: $url"
-          echo "url=$url" >> $GITHUB_OUTPUT
+  #     - name: Start backend server
+  #       id: start-backend
+  #       run: |
+  #         echo "🚀 Starting backend server..."
+  #         node server.js > server.log 2>&1 &
+  #         sleep 15
+  #         cat server.log
+  #         url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' server.log | head -n1)
+  #         echo "Backend URL captured: $url"
+  #         echo "url=$url" >> $GITHUB_OUTPUT
        
-      - name: Test backend API
-        run: |
-          echo "🧪 Testing backend API..."
-          curl -s ${{ steps.start-backend.outputs.url }}/api
-          echo ""
-          echo "✅ Backend API is working!"
+  #     - name: Test backend API
+  #       run: |
+  #         echo "🧪 Testing backend API..."
+  #         curl -s ${{ steps.start-backend.outputs.url }}/api
+  #         echo ""
+  #         echo "✅ Backend API is working!"
        
-      - name: Keep backend alive
-        run: |
-          echo "🔄 Keeping backend alive for 10 minutes..."
-          sleep 600
+  #     - name: Keep backend alive
+  #       run: |
+  #         echo "🔄 Keeping backend alive for 10 minutes..."
+  #         sleep 600
 
   # Job 2: Frontend Host (runs after backend is ready)
   frontend_host:
     runs-on: ubuntu-latest
     steps:
-      - name: sleeping till backend runs 
-        run: |
-          echo "🔄 Keeping frond end  alive for few minutes..."
-          sleep 30
+      # - name: sleeping till backend runs 
+      #   run: |
+      #     echo "🔄 Keeping frond end  alive for 10 sec..."
+          # sleep 10
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          
+
       - name: Get LocalTunnel Password
         run: |
           echo "🔑 Getting password from LocalTunnel..."
