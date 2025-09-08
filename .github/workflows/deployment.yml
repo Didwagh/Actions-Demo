@@ -7,5 +7,42 @@ jobs:
     # outputs:
       # backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
-      - name: Checkout repo
-        run: ssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:8000 a.pinggy.io
+      - name: Checkout repos
+        run: ssh -p 443 -L4300:localhost:4300 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:3000 a.pinggy.io
+   
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name: welcome msg
+        run: echo "first github actions"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start server (background)
+        run: |
+          echo "🚀 Starting server in background..."
+          node server.js &
+          echo "⏰ Server started, will run for 5 minutes"
+
+      - name: Keep workflow alive
+        run: |
+          echo "🕐 Keeping workflow alive for 5 minutes..."
+          echo "📋 Check the logs above for:"
+          echo "   1. Password from loca.lt/mytunnelpassword"
+          echo "   2. Your tunnel URL (something like https://abc123.loca.lt)"
+          echo ""
+          echo "⌛ Waiting 5 minutes for you to test the tunnel..."
+          
+          # Sleep for 5 minutes (300 seconds)
+          for i in {1..10}; do
+            echo "⏳ $((i*30)) seconds elapsed..."
+            sleep 30
+          done
+          
+          echo "✅ 5 minutes completed - workflow ending"
