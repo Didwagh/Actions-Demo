@@ -1,37 +1,48 @@
 const express = require('express');
 const localtunnel = require('localtunnel');
-const path = require('path');
 
 const app = express();
 const port = 3000;
 
-// ✅ Serve frontend folder
-app.use(express.static(path.join(__dirname, 'frontend')));
+// CORS for cross-origin requests from frontend
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
-// Simple API
+// Simple API - NO frontend serving
 app.get('/api', (req, res) => {
-  res.send('Hello World from GitHub Actions via LocalTunnel!');
+  res.json({
+    message: 'Hello from Backend Server!',
+    timestamp: new Date().toISOString(),
+    server: 'GitHub Actions Backend Pod'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
 (async () => {
   const server = app.listen(port, async () => {
-    console.log(`🚀 Server running at http://localhost:${port}`);
+    console.log(`🚀 Backend server running at http://localhost:${port}`);
     
     try {
       const tunnel = await localtunnel({ port });
-      console.log(`🌐 Public URL: ${tunnel.url}`);
-      console.log(`👉 Frontend: ${tunnel.url}/index.html`);
-      console.log(`👉 API: ${tunnel.url}/api`);
+      console.log(`🌐 Public Backend URL: ${tunnel.url}`);
+      console.log(`👉 API Endpoint: ${tunnel.url}/api`);
+      console.log(`👉 Health Check: ${tunnel.url}/health`);
       
-      // Keep alive 5 minutes
+      // Keep alive longer for frontend to connect
       setTimeout(() => {
-        console.log('🛑 Shutting down...');
+        console.log('🛑 Backend shutting down...');
         tunnel.close();
         server.close();
         process.exit(0);
-      }, 300000);
+      }, 700000); // 11+ minutes
     } catch (err) {
-      console.error('❌ Tunnel error:', err);
+      console.error('❌ Backend tunnel error:', err);
     }
   });
 })();

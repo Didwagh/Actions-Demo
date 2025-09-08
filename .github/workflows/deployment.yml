@@ -2,8 +2,11 @@ name: deployment
 on: push
 
 jobs:
-  test_frontend:
+  # Job 1: Backend Server Only
+  backend_server:
     runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -16,49 +19,77 @@ jobs:
       - name: Install dependencies
         run: npm install
        
-      - name: Get LocalTunnel Password
+      - name: Start backend server
+        id: start-backend
         run: |
-          echo "🔑 Getting password from LocalTunnel..."
-          curl -s https://loca.lt/mytunnelpassword
-          echo ""
-          echo "👆 Copy the password shown above"
-        
-      - name: Start server and capture tunnel URL
-        id: start-server
-        run: |
-          echo "🚀 Starting server..."
+          echo "🚀 Starting backend server..."
           node server.js > server.log 2>&1 &
           sleep 15
           cat server.log
           url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' server.log | head -n1)
-          echo "Captured tunnel URL: $url"
+          echo "Backend URL captured: $url"
           echo "url=$url" >> $GITHUB_OUTPUT
        
-      - name: Verify frontend file exists
+      - name: Test backend API
         run: |
-          if [ ! -f "frontend/index.html" ]; then
-            echo "❌ frontend/index.html not found!"
-            echo "📁 Repository structure:"
-            find . -name "*.html" -o -name "*.js" | head -10
-            exit 1
-          fi
-       
-      - name: Inject backend URL into frontend
-        run: |
-          if [ -n "${{ steps.start-server.outputs.url }}" ]; then
-            sed -i "s|BACKEND_URL_PLACEHOLDER|${{ steps.start-server.outputs.url }}|g" frontend/index.html
-            echo "✅ URL injected: ${{ steps.start-server.outputs.url }}"
-          else
-            echo "❌ No URL captured!"
-            exit 1
-          fi
-       
-      - name: Request frontend via tunnel
-        run: |
-          echo "🌍 Testing frontend..."
-          curl -s ${{ steps.start-server.outputs.url }}/index.html | head -n 20
+          echo "🧪 Testing backend API..."
+          curl -s ${{ steps.start-backend.outputs.url }}/api
           echo ""
-          echo "✅ Above is the first 20 lines of your frontend page"
+          echo "✅ Backend API is working!"
        
-      - name: Keep server alive
-        run: sleep 60
+      - name: Keep backend alive
+        run: |
+          echo "🔄 Keeping backend alive for 10 minutes..."
+          sleep 600
+
+  # Job 2: Frontend Host (runs after backend is ready)
+  frontend_host:
+    runs-on: ubuntu-latest
+    needs: backend_server
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+       
+      - name: Setup Node.js for frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+       
+      - name: Create frontend with injected backend URL
+        run: |
+          echo "🎨 Creating frontend with backend URL: ${{ needs.backend_server.outputs.backend_url }}"
+          mkdir -p frontend
+          sed "s|BACKEND_URL_PLACEHOLDER|${{ needs.backend_server.outputs.backend_url }}|g" frontend-template.html > frontend/index.html
+          echo "✅ Frontend created with injected URL"
+       
+      - name: Start frontend server
+        id: start-frontend
+        run: |
+          echo "🌐 Starting frontend server..."
+          npx http-server frontend -p 3001 > frontend.log 2>&1 &
+          sleep 5
+          
+          # Install localtunnel and create tunnel for frontend
+          npm install -g localtunnel
+          lt --port 3001 > tunnel.log 2>&1 &
+          sleep 10
+          
+          frontend_url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' tunnel.log | head -n1)
+          echo "Frontend URL: $frontend_url"
+          echo "url=$frontend_url" >> $GITHUB_OUTPUT
+       
+      - name: Test complete flow
+        run: |
+          echo "🔗 Testing complete flow..."
+          echo "Backend: ${{ needs.backend_server.outputs.backend_url }}/api"
+          echo "Frontend: ${{ steps.start-frontend.outputs.url }}"
+          echo ""
+          echo "📄 Frontend page content:"
+          curl -s ${{ steps.start-frontend.outputs.url }} | head -n 30
+          echo ""
+          echo "✅ You can visit: ${{ steps.start-frontend.outputs.url }}"
+       
+      - name: Keep frontend alive
+        run: |
+          echo "🔄 Keeping frontend alive for 5 minutes..."
+          sleep 300
