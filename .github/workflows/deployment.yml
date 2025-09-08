@@ -9,109 +9,46 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-       
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-       
-      # - name: Install dependencies
-      #   run: npm install
 
-      - name: Install ngrok
-        run: npm install -g ngrok
+      - name: Install dependencies
+        run: npm install
 
-      # - name: Start backend server
-      #   run: |
-      #     echo "🚀 Starting backend server..."
-      #     node server.js > server.log 2>&1 &
-      #     sleep 5
-      #     cat server.log
-
-      - name: Start ngrok tunnel (host-header=rewrite) and export URL
-        id: start-backend
-        env:
-          NGROK_AUTH: ${{ secrets.NGROK_AUTH }}
+      - name: Install Pinggy CLI
         run: |
-          ngrok config add-authtoken "$NGROK_AUTH"
-          ngrok http 3000 --host-header=rewrite > /dev/null 2>&1 &
+          curl -LO https://pinggy.io/download/pinggy-linux-x86_64
+          chmod +x pinggy-linux-x86_64
+          mv pinggy-linux-x86_64 /usr/local/bin/pinggy
+
+      - name: Start backend server
+        run: |
+          echo "🚀 Starting backend server..."
+          node server.js > server.log 2>&1 &
+          sleep 5
+          cat server.log
+
+      - name: Start Pinggy tunnel and export URL
+        id: start-backend
+        run: |
+          echo "🔗 Starting Pinggy tunnel..."
+          pinggy -p 443 -R0:localhost:3000 -L4300:localhost:4300 qr@a.pinggy.io
           sleep 6
-          url=$(curl --silent http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+          url=$(curl --silent http://localhost:4300/api/tunnels | jq -r '.tunnels[0].public_url')
           echo "Backend URL captured: $url"
           echo "url=$url" >> $GITHUB_OUTPUT
 
-      # - name: Test backend API
-      #   run: |
-      #     echo "🧪 Testing backend API..."
-      #     curl -s ${{ steps.start-backend.outputs.url }}/api
-      #     echo ""
-      #     echo "✅ Backend API is working!"
+      - name: Test backend API
+        run: |
+          echo "🧪 Testing backend API..."
+          curl -s ${{ steps.start-backend.outputs.url }}/api
+          echo ""
+          echo "✅ Backend API is working!"
 
       - name: Keep backend alive
         run: |
           echo "🔄 Keeping backend alive for 10 minutes..."
           sleep 600
-
-
-  # Job 2: Frontend Host (runs after backend is ready)
-  # frontend_host:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: sleeping till backend runs 
-  #       run: |
-  #         echo "🔄 Keeping frond end  alive for 10 sec..."
-  #         sleep 10
-
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v4
-       
-  #     - name: Setup Node.js for frontend
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '18'
-
-  #     - name: Get LocalTunnel Password
-  #       run: |
-  #         echo "🔑 Getting password from LocalTunnel..."
-  #         curl -s https://loca.lt/mytunnelpassword
-  #         echo ""
-  #         echo "👆 Copy the password shown above"
-       
-  #     - name: Create frontend with injected backend URL
-  #       run: |
-  #         echo "🎨 Creating frontend with backend URL: ${{ needs.backend_server.outputs.backend_url }}"
-  #         mkdir -p frontend
-  #         sed "s|BACKEND_URL_PLACEHOLDER|${{ needs.backend_server.outputs.backend_url }}|g" frontend-template.html > frontend/index.html
-  #         echo "✅ Frontend created with injected URL"
-       
-  #     - name: Start frontend server
-  #       id: start-frontend
-  #       run: |
-  #         echo "🌐 Starting frontend server..."
-  #         npx http-server frontend -p 3001 > frontend.log 2>&1 &
-  #         sleep 5
-          
-  #         # Install localtunnel and create tunnel for frontend
-  #         npm install -g localtunnel
-  #         lt --port 3001 > tunnel.log 2>&1 &
-  #         sleep 10
-          
-  #         frontend_url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' tunnel.log | head -n1)
-  #         echo "Frontend URL: $frontend_url"
-  #         echo "url=$frontend_url" >> $GITHUB_OUTPUT
-       
-  #     - name: Test complete flow
-  #       run: |
-  #         echo "🔗 Testing complete flow..."
-  #         echo "Backend: ${{ needs.backend_server.outputs.backend_url }}/api"
-  #         echo "Frontend: ${{ steps.start-frontend.outputs.url }}"
-  #         echo ""
-  #         echo "📄 Frontend page content:"
-  #         curl -s ${{ steps.start-frontend.outputs.url }} | head -n 30
-  #         echo ""
-  #         echo "✅ You can visit: ${{ steps.start-frontend.outputs.url }}"
-       
-  #     - name: Keep frontend alive
-  #       run: |
-  #         echo "🔄 Keeping frontend alive for 5 minutes..."
-  #         sleep 300
