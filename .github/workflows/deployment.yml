@@ -54,7 +54,7 @@ jobs:
       - name: Keep backend alive
         run: |
           echo "🔄 Keeping backend alive for 10 minutes..."
-          sleep 60
+          sleep 600
 
 
   # Job 2: Frontend Host (runs after backend is ready)
