@@ -45,8 +45,12 @@ jobs:
   # Job 2: Frontend Host (runs after backend is ready)
   frontend_host:
     runs-on: ubuntu-latest
-    needs: backend_server
     steps:
+      - name: sleeping till backend runs 
+        run: |
+          echo "🔄 Keeping frond end  alive for few minutes..."
+          sleep 60
+
       - name: Checkout repo
         uses: actions/checkout@v4
        

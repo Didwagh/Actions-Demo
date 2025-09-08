@@ -3,23 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontend Pod - Connecting to Backend</title>
+  <title>Frontend Pod - Manual Backend Connection</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
     .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
     .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     .info { background: #cce7ff; color: #004085; border: 1px solid #99d6ff; }
+    .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
     button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    input { padding: 8px; width: 400px; margin: 5px; }
     #response { white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 5px; }
   </style>
 </head>
 <body>
   <h1>🌐 Frontend Pod</h1>
-  <div class="info">
-    <strong>Frontend:</strong> Running on separate GitHub Actions runner<br>
-    <strong>Backend:</strong> <span id="backend-url">BACKEND_URL_PLACEHOLDER</span>
+  <div class="warning">
+    <strong>⚠️ MANUAL SETUP REQUIRED:</strong><br>
+    Since GitHub Actions jobs run in parallel, you need to manually enter the backend URL below.
   </div>
+
+  <h2>🔧 Backend Configuration</h2>
+  <label>Backend URL:</label><br>
+  <input type="url" id="backend-input" placeholder="https://your-backend-url.loca.lt" />
+  <button onclick="setBackendUrl()">Set Backend URL</button>
+  <button onclick="findBackendUrls()">Auto-Detect Backend</button>
+  
+  <div id="backend-status" class="status info">Enter backend URL above</div>
 
   <h2>🍎 Static Content</h2>
   <ul>
@@ -29,21 +39,68 @@
     <li>🍊 Orange</li>
   </ul>
   
-  <h2>🔌 Backend Connection</h2>
+  <h2>🔌 Backend Connection Tests</h2>
   <button onclick="testConnection()">Test Backend Connection</button>
   <button onclick="getHealth()">Check Backend Health</button>
   <button onclick="autoRefresh()">Auto Refresh (10s)</button>
   
-  <div id="status" class="status info">Ready to connect...</div>
-  <div id="response">Click a button to test backend connection</div>
+  <div id="status" class="status info">Set backend URL first</div>
+  <div id="response">Enter backend URL and click "Test Backend Connection"</div>
 
   <script>
-    const backendUrl = "BACKEND_URL_PLACEHOLDER";
-    document.getElementById('backend-url').textContent = backendUrl;
-    
+    let backendUrl = "";
     let autoRefreshInterval;
     
+    // Try to detect backend URLs automatically
+    async function findBackendUrls() {
+      updateStatus('🔍 Searching for backend URLs...', 'info');
+      
+      // Common LocalTunnel patterns
+      const patterns = [
+        'https://lively-',
+        'https://tricky-', 
+        'https://bright-',
+        'https://clever-',
+        'https://happy-'
+      ];
+      
+      const possibleUrls = [];
+      for (let i = 0; i < 5; i++) {
+        const randomId = Math.random().toString(36).substr(2, 9);
+        patterns.forEach(pattern => {
+          possibleUrls.push(`${pattern}${randomId}.loca.lt`);
+        });
+      }
+      
+      updateStatus(`⚠️ Auto-detection not reliable. Check GitHub Actions logs for backend URL`, 'warning');
+      document.getElementById('response').textContent = 
+        'Go to your GitHub Actions run and copy the backend URL from the logs.\n\nLook for: "Public Backend URL: https://xxxxx.loca.lt"';
+    }
+    
+    function setBackendUrl() {
+      const input = document.getElementById('backend-input');
+      backendUrl = input.value.trim();
+      
+      if (!backendUrl) {
+        updateBackendStatus('❌ Please enter a backend URL', 'error');
+        return;
+      }
+      
+      if (!backendUrl.includes('loca.lt')) {
+        updateBackendStatus('⚠️ URL should be a LocalTunnel URL (*.loca.lt)', 'warning');
+      } else {
+        updateBackendStatus(`✅ Backend set to: ${backendUrl}`, 'success');
+      }
+      
+      updateStatus('Ready to test connection', 'info');
+    }
+    
     async function testConnection() {
+      if (!backendUrl) {
+        updateStatus('❌ Set backend URL first!', 'error');
+        return;
+      }
+      
       updateStatus('Testing connection...', 'info');
       
       try {
@@ -51,17 +108,22 @@
         const data = await response.json();
         
         document.getElementById('response').textContent = 
-          `✅ SUCCESS!\n\n${JSON.stringify(data, null, 2)}`;
+          `✅ SUCCESS! Connected to backend pod!\n\n${JSON.stringify(data, null, 2)}`;
         updateStatus('✅ Backend connected successfully!', 'success');
         
       } catch (error) {
         document.getElementById('response').textContent = 
-          `❌ ERROR: ${error.message}`;
+          `❌ ERROR: ${error.message}\n\nMake sure:\n1. Backend URL is correct\n2. Backend pod is still running\n3. You entered the LocalTunnel password`;
         updateStatus('❌ Failed to connect to backend', 'error');
       }
     }
     
     async function getHealth() {
+      if (!backendUrl) {
+        updateStatus('❌ Set backend URL first!', 'error');
+        return;
+      }
+      
       updateStatus('Checking backend health...', 'info');
       
       try {
@@ -87,6 +149,11 @@
         return;
       }
       
+      if (!backendUrl) {
+        updateStatus('❌ Set backend URL first!', 'error');
+        return;
+      }
+      
       updateStatus('Auto refresh started (every 10s)', 'info');
       autoRefreshInterval = setInterval(testConnection, 10000);
       testConnection(); // Run immediately
@@ -98,8 +165,15 @@
       statusDiv.className = `status ${type}`;
     }
     
-    // Test connection on page load
-    setTimeout(testConnection, 1000);
+    function updateBackendStatus(message, type) {
+      const statusDiv = document.getElementById('backend-status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+    
+    // Instructions on page load
+    document.getElementById('response').textContent = 
+      'INSTRUCTIONS:\n\n1. Check GitHub Actions logs for backend URL\n2. Enter it in the input field above\n3. Click "Set Backend URL"\n4. Click "Test Backend Connection"';
   </script>
 </body>
 </html>
