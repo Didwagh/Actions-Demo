@@ -1,16 +1,16 @@
 const express = require('express');
+const cors = require('cors'); // ✅ import cors
 
 const app = express();
 const port = 3000;
 
-// CORS for cross-origin requests from frontend
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
+// Enable CORS for all origins
+app.use(cors());
 
-// Simple API - NO frontend serving
+// Optional: JSON parsing middleware
+app.use(express.json());
+
+// Simple API
 app.get('/api', (req, res) => {
   res.json({
     message: 'Hello from Backend Server!',
@@ -20,10 +20,12 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`🚀 Backend server running at http://localhost:${port}`);
 });
