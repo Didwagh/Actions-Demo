@@ -1,5 +1,4 @@
 const express = require('express');
-const localtunnel = require('localtunnel');
 
 const app = express();
 const port = 3000;
@@ -16,7 +15,8 @@ app.get('/api', (req, res) => {
   res.json({
     message: 'Hello from Backend Server!',
     timestamp: new Date().toISOString(),
-    server: 'GitHub Actions Backend Pod'
+    server: 'GitHub Actions Backend Pod',
+    passwordBypassed: true
   });
 });
 
@@ -24,28 +24,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', uptime: process.uptime() });
 });
 
-(async () => {
-  const server = app.listen(port, async () => {
-    console.log(`🚀 Backend server running at http://localhost:${port}`);
-
-    try {
-      const tunnel = await localtunnel({
-        port,
-        subdomain: `backend-${Date.now()}` // This bypasses the password!
-      });
-      console.log(`🌐 Public Backend URL: ${tunnel.url}`);
-      console.log(`👉 API Endpoint: ${tunnel.url}/api`);
-      console.log(`👉 Health Check: ${tunnel.url}/health`);
-
-      // Keep alive longer for frontend to connect
-      setTimeout(() => {
-        console.log('🛑 Backend shutting down...');
-        tunnel.close();
-        server.close();
-        process.exit(0);
-      }, 700000); // 11+ minutes
-    } catch (err) {
-      console.error('❌ Backend tunnel error:', err);
-    }
-  });
-})();
+app.listen(port, () => {
+  console.log(`🚀 Backend server running at http://localhost:${port}`);
+});

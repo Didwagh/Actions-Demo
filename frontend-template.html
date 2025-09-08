@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontend Pod - Manual Backend Connection</title>
+  <title>Frontend Pod - Smart Backend Connection</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
     .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
@@ -14,22 +14,31 @@
     button { padding: 10px 20px; margin: 5px; cursor: pointer; }
     input { padding: 8px; width: 400px; margin: 5px; }
     #response { white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 5px; }
+    .tunnel-password { background: #e9ecef; padding: 10px; border-radius: 5px; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h1>🌐 Frontend Pod</h1>
-  <div class="warning">
-    <strong>⚠️ MANUAL SETUP REQUIRED:</strong><br>
-    Since GitHub Actions jobs run in parallel, you need to manually enter the backend URL below.
+  <h1>🌐 Frontend Pod - Smart Connection</h1>
+  
+  <div class="info">
+    <strong>🧠 Smart Features:</strong><br>
+    • Auto-detects if backend needs password<br>
+    • Automatically fetches tunnel password<br>
+    • Bypasses password form when possible
   </div>
 
   <h2>🔧 Backend Configuration</h2>
   <label>Backend URL:</label><br>
-  <input type="url" id="backend-input" placeholder="https://your-backend-url.loca.lt" />
+  <input type="url" id="backend-input" placeholder="https://cute-pets-yawn.loca.lt" />
   <button onclick="setBackendUrl()">Set Backend URL</button>
-  <button onclick="findBackendUrls()">Auto-Detect Backend</button>
+  <button onclick="smartConnect()">🧠 Smart Connect</button>
   
   <div id="backend-status" class="status info">Enter backend URL above</div>
+
+  <div class="tunnel-password">
+    <strong>🔑 Tunnel Password (Auto-fetched):</strong>
+    <div id="tunnel-password-display">Will be fetched automatically...</div>
+  </div>
 
   <h2>🍎 Static Content</h2>
   <ul>
@@ -42,39 +51,136 @@
   <h2>🔌 Backend Connection Tests</h2>
   <button onclick="testConnection()">Test Backend Connection</button>
   <button onclick="getHealth()">Check Backend Health</button>
+  <button onclick="bypassPasswordAndConnect()">🔓 Bypass Password & Connect</button>
   <button onclick="autoRefresh()">Auto Refresh (10s)</button>
   
   <div id="status" class="status info">Set backend URL first</div>
-  <div id="response">Enter backend URL and click "Test Backend Connection"</div>
+  <div id="response">Enter backend URL and try Smart Connect</div>
 
   <script>
     let backendUrl = "";
     let autoRefreshInterval;
+    let tunnelPassword = "";
     
-    // Try to detect backend URLs automatically
-    async function findBackendUrls() {
-      updateStatus('🔍 Searching for backend URLs...', 'info');
-      
-      // Common LocalTunnel patterns
-      const patterns = [
-        'https://lively-',
-        'https://tricky-', 
-        'https://bright-',
-        'https://clever-',
-        'https://happy-'
-      ];
-      
-      const possibleUrls = [];
-      for (let i = 0; i < 5; i++) {
-        const randomId = Math.random().toString(36).substr(2, 9);
-        patterns.forEach(pattern => {
-          possibleUrls.push(`${pattern}${randomId}.loca.lt`);
-        });
+    // Fetch the tunnel password
+    async function fetchTunnelPassword() {
+      try {
+        updateStatus('🔑 Fetching tunnel password...', 'info');
+        const response = await fetch('https://loca.lt/mytunnelpassword');
+        const password = await response.text();
+        tunnelPassword = password.trim();
+        
+        document.getElementById('tunnel-password-display').textContent = tunnelPassword;
+        updateStatus('✅ Tunnel password fetched!', 'success');
+        return tunnelPassword;
+      } catch (error) {
+        updateStatus('⚠️ Could not fetch tunnel password', 'warning');
+        document.getElementById('tunnel-password-display').textContent = 'Failed to fetch';
+        return null;
+      }
+    }
+    
+    // Smart connect - tries multiple approaches
+    async function smartConnect() {
+      if (!backendUrl) {
+        updateStatus('❌ Set backend URL first!', 'error');
+        return;
       }
       
-      updateStatus(`⚠️ Auto-detection not reliable. Check GitHub Actions logs for backend URL`, 'warning');
-      document.getElementById('response').textContent = 
-        'Go to your GitHub Actions run and copy the backend URL from the logs.\n\nLook for: "Public Backend URL: https://xxxxx.loca.lt"';
+      updateStatus('🧠 Starting smart connection...', 'info');
+      
+      // Step 1: Fetch tunnel password
+      await fetchTunnelPassword();
+      
+      // Step 2: Try direct API connection first
+      try {
+        updateStatus('🎯 Trying direct API connection...', 'info');
+        const response = await fetch(`${backendUrl}/api`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('response').textContent = 
+            `✅ SUCCESS! Direct connection (no password needed)\n\n${JSON.stringify(data, null, 2)}`;
+          updateStatus('✅ Connected directly - no password needed!', 'success');
+          return;
+        }
+      } catch (error) {
+        console.log('Direct connection failed, trying password bypass...');
+      }
+      
+      // Step 3: Try password bypass
+      await bypassPasswordAndConnect();
+    }
+    
+    // Bypass password form and connect
+    async function bypassPasswordAndConnect() {
+      if (!backendUrl) {
+        updateStatus('❌ Set backend URL first!', 'error');
+        return;
+      }
+      
+      if (!tunnelPassword) {
+        await fetchTunnelPassword();
+      }
+      
+      updateStatus('🔓 Attempting password bypass...', 'info');
+      
+      try {
+        // Method 1: Try with tunnel password in headers
+        const headers = {
+          'X-Tunnel-Password': tunnelPassword,
+          'Authorization': `Bearer ${tunnelPassword}`,
+          'Tunnel-Password': tunnelPassword
+        };
+        
+        let response = await fetch(`${backendUrl}/api`, { headers });
+        
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('response').textContent = 
+            `✅ SUCCESS! Bypassed with headers\n\n${JSON.stringify(data, null, 2)}`;
+          updateStatus('✅ Password bypass successful!', 'success');
+          return;
+        }
+        
+        // Method 2: Try POST with password in body
+        response = await fetch(backendUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `tunnel_password=${encodeURIComponent(tunnelPassword)}`
+        });
+        
+        if (response.ok) {
+          // Now try the API
+          const apiResponse = await fetch(`${backendUrl}/api`);
+          const data = await apiResponse.json();
+          document.getElementById('response').textContent = 
+            `✅ SUCCESS! Authenticated with POST\n\n${JSON.stringify(data, null, 2)}`;
+          updateStatus('✅ Password authentication successful!', 'success');
+          return;
+        }
+        
+        // Method 3: Try URL with password parameter
+        const urlWithPassword = `${backendUrl}/api?password=${encodeURIComponent(tunnelPassword)}`;
+        response = await fetch(urlWithPassword);
+        
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('response').textContent = 
+            `✅ SUCCESS! URL parameter method\n\n${JSON.stringify(data, null, 2)}`;
+          updateStatus('✅ URL parameter authentication successful!', 'success');
+          return;
+        }
+        
+        updateStatus('⚠️ Password bypass failed, manual entry may be needed', 'warning');
+        document.getElementById('response').textContent = 
+          `Password bypass methods failed.\n\nManual steps:\n1. Visit: ${backendUrl}\n2. Enter password: ${tunnelPassword}\n3. Then visit: ${backendUrl}/api`;
+        
+      } catch (error) {
+        updateStatus('❌ Password bypass error', 'error');
+        document.getElementById('response').textContent = 
+          `❌ ERROR: ${error.message}\n\nTry manual authentication:\n1. Visit: ${backendUrl}\n2. Enter password: ${tunnelPassword}`;
+      }
     }
     
     function setBackendUrl() {
@@ -92,7 +198,7 @@
         updateBackendStatus(`✅ Backend set to: ${backendUrl}`, 'success');
       }
       
-      updateStatus('Ready to test connection', 'info');
+      updateStatus('Ready for smart connection', 'info');
     }
     
     async function testConnection() {
@@ -113,8 +219,8 @@
         
       } catch (error) {
         document.getElementById('response').textContent = 
-          `❌ ERROR: ${error.message}\n\nMake sure:\n1. Backend URL is correct\n2. Backend pod is still running\n3. You entered the LocalTunnel password`;
-        updateStatus('❌ Failed to connect to backend', 'error');
+          `❌ ERROR: ${error.message}\n\nTry Smart Connect button for automatic password handling`;
+        updateStatus('❌ Connection failed - try Smart Connect', 'error');
       }
     }
     
@@ -171,9 +277,12 @@
       statusDiv.className = `status ${type}`;
     }
     
-    // Instructions on page load
-    document.getElementById('response').textContent = 
-      'INSTRUCTIONS:\n\n1. Check GitHub Actions logs for backend URL\n2. Enter it in the input field above\n3. Click "Set Backend URL"\n4. Click "Test Backend Connection"';
+    // Auto-fetch password on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchTunnelPassword();
+      document.getElementById('response').textContent = 
+        'SMART FRONTEND READY:\n\n1. Enter backend URL\n2. Click "Smart Connect"\n3. Frontend will handle password automatically!';
+    });
   </script>
 </body>
 </html>

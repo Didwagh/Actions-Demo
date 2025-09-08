@@ -2,7 +2,6 @@ name: deployment
 on: push
 
 jobs:
-  # Job 1: Backend Server Only
   backend_server:
     runs-on: ubuntu-latest
     outputs:
@@ -11,7 +10,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
        
-        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -20,35 +18,41 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Get LocalTunnel Password
-        run: |
-          echo "🔑 Getting password from LocalTunnel..."
-          curl -s https://loca.lt/mytunnelpassword
-          echo ""
-          echo "👆 Copy the password shown above"
-       
+      - name: Install ngrok
+        run: npm install -g ngrok
+
       - name: Start backend server
-        id: start-backend
         run: |
           echo "🚀 Starting backend server..."
           node server.js > server.log 2>&1 &
-          sleep 15
+          sleep 5
           cat server.log
-          url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' server.log | head -n1)
+
+      - name: Start ngrok tunnel (skip warning)
+        id: start-backend
+        env:
+          NGROK_SKIP_BROWSER_WARNING: "true"
+        run: |
+          echo "🌐 Starting ngrok..."
+          ngrok http 3000 > ngrok.log 2>&1 &
+          sleep 10
+          cat ngrok.log
+          url=$(grep -o 'https://[0-9a-z.-]*\.ngrok-free\.app' ngrok.log | head -n1)
           echo "Backend URL captured: $url"
           echo "url=$url" >> $GITHUB_OUTPUT
-       
+
       - name: Test backend API
         run: |
           echo "🧪 Testing backend API..."
           curl -s ${{ steps.start-backend.outputs.url }}/api
           echo ""
           echo "✅ Backend API is working!"
-       
+
       - name: Keep backend alive
         run: |
           echo "🔄 Keeping backend alive for 10 minutes..."
           sleep 600
+
 
   # Job 2: Frontend Host (runs after backend is ready)
   # frontend_host:
