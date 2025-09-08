@@ -1,5 +1,4 @@
-name: first
-
+name: deployment
 on: push
 
 jobs:
@@ -8,36 +7,58 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
+       
       - name: Install dependencies
         run: npm install
-
+       
+      - name: Get LocalTunnel Password
+        run: |
+          echo "🔑 Getting password from LocalTunnel..."
+          curl -s https://loca.lt/mytunnelpassword
+          echo ""
+          echo "👆 Copy the password shown above"
+        
       - name: Start server and capture tunnel URL
         id: start-server
         run: |
           echo "🚀 Starting server..."
           node server.js > server.log 2>&1 &
-          sleep 10
+          sleep 15
           cat server.log
-          url=$(grep -o 'https://[0-9a-z]\+\.loca\.lt' server.log | head -n1)
+          url=$(grep -o 'https://[0-9a-z-]\+\.loca\.lt' server.log | head -n1)
           echo "Captured tunnel URL: $url"
           echo "url=$url" >> $GITHUB_OUTPUT
-
+       
+      - name: Verify frontend file exists
+        run: |
+          if [ ! -f "frontend/index.html" ]; then
+            echo "❌ frontend/index.html not found!"
+            echo "📁 Repository structure:"
+            find . -name "*.html" -o -name "*.js" | head -10
+            exit 1
+          fi
+       
       - name: Inject backend URL into frontend
         run: |
-          sed -i "s|BACKEND_URL_PLACEHOLDER|${{ steps.start-server.outputs.url }}|g" frontend/index.html
-
+          if [ -n "${{ steps.start-server.outputs.url }}" ]; then
+            sed -i "s|BACKEND_URL_PLACEHOLDER|${{ steps.start-server.outputs.url }}|g" frontend/index.html
+            echo "✅ URL injected: ${{ steps.start-server.outputs.url }}"
+          else
+            echo "❌ No URL captured!"
+            exit 1
+          fi
+       
       - name: Request frontend via tunnel
         run: |
           echo "🌍 Testing frontend..."
           curl -s ${{ steps.start-server.outputs.url }}/index.html | head -n 20
           echo ""
           echo "✅ Above is the first 20 lines of your frontend page"
-
+       
       - name: Keep server alive
         run: sleep 60

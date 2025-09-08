@@ -16,16 +16,13 @@ app.get('/api', (req, res) => {
 (async () => {
   const server = app.listen(port, async () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
-
+    
     try {
       const tunnel = await localtunnel({ port });
       console.log(`🌐 Public URL: ${tunnel.url}`);
       console.log(`👉 Frontend: ${tunnel.url}/index.html`);
       console.log(`👉 API: ${tunnel.url}/api`);
-
-      // Emit tunnel URL for GitHub Actions
-      console.log(`::set-output name=url::${tunnel.url}`);
-
+      
       // Keep alive 5 minutes
       setTimeout(() => {
         console.log('🛑 Shutting down...');
