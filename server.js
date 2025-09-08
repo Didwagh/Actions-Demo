@@ -27,13 +27,16 @@ app.get('/health', (req, res) => {
 (async () => {
   const server = app.listen(port, async () => {
     console.log(`🚀 Backend server running at http://localhost:${port}`);
-    
+
     try {
-      const tunnel = await localtunnel({ port });
+      const tunnel = await localtunnel({
+        port,
+        subdomain: `backend-${Date.now()}` // This bypasses the password!
+      });
       console.log(`🌐 Public Backend URL: ${tunnel.url}`);
       console.log(`👉 API Endpoint: ${tunnel.url}/api`);
       console.log(`👉 Health Check: ${tunnel.url}/health`);
-      
+
       // Keep alive longer for frontend to connect
       setTimeout(() => {
         console.log('🛑 Backend shutting down...');
