@@ -4,51 +4,8 @@ on: push
 jobs:
   backend_server:
     runs-on: ubuntu-latest
-    outputs:
-      backend_url: ${{ steps.start-backend.outputs.url }}
+    # outputs:
+      # backend_url: ${{ steps.start-backend.outputs.url }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install Pinggy CLI
-        run: |
-          curl -LO https://pinggy.io/download/pinggy-linux-x86_64
-          chmod +x pinggy-linux-x86_64
-          mv pinggy-linux-x86_64 /usr/local/bin/pinggy
-
-      - name: Start backend server
-        run: |
-          echo "🚀 Starting backend server..."
-          node server.js > server.log 2>&1 &
-          sleep 5
-          cat server.log
-
-      - name: Start Pinggy tunnel and export URL
-        id: start-backend
-        run: |
-          echo "🔗 Starting Pinggy tunnel..."
-          pinggy -p 443 -R0:localhost:3000 -L4300:localhost:4300 qr@a.pinggy.io
-          sleep 6
-          url=$(curl --silent http://localhost:4300/api/tunnels | jq -r '.tunnels[0].public_url')
-          echo "Backend URL captured: $url"
-          echo "url=$url" >> $GITHUB_OUTPUT
-
-      - name: Test backend API
-        run: |
-          echo "🧪 Testing backend API..."
-          curl -s ${{ steps.start-backend.outputs.url }}/api
-          echo ""
-          echo "✅ Backend API is working!"
-
-      - name: Keep backend alive
-        run: |
-          echo "🔄 Keeping backend alive for 10 minutes..."
-          sleep 600
+        run: ./pinggy -p 443 -R0:localhost:8000
