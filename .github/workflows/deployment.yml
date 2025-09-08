@@ -34,6 +34,8 @@ jobs:
           NGROK_SKIP_BROWSER_WARNING: "true"
         run: |
           echo "🌐 Starting ngrok..."
+          ngrok config add-authtoken ${{secrets.ngrok_auth}}
+          echo "🌐 Starting ngrok... ${{secrets.ngrok_auth}}"
           ngrok http 3000 > ngrok.log 2>&1 &
           sleep 10
           cat ngrok.log
