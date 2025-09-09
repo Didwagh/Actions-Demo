@@ -1,0 +1,11 @@
+name: interaction
+on: push
+
+jobs:
+    job_1:
+        runs-on: ubuntu-latest
+        steps:
+            - name: hello
+              uses: actions/checkout@v4
+            - name: Setup tmate session
+              uses: mxschmitt/action-tmate@v3
